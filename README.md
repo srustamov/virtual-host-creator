@@ -1,6 +1,9 @@
+# For Ubuntu machines
+
 Virtual host creator for Nginx(with php)
 
 * Goto Command Line
+
 ```
    $ git clone https://github.com/srustamov/virtual-host-creator.git
 

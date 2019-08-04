@@ -24,7 +24,8 @@ else:
 print('\033[95m'+"""
 ***************************************************************************************
 *                                                                                     *
-*                       NGINX SIMPLE VIRTUAL HOST CREATE                              *
+*                         NGINX SIMPLE VIRTUAL HOST CREATOR                           *
+*                              For Ubuntu machines                                    *
 *                                                                                     *
 ***************************************************************************************
 """+'\033[0m')
@@ -44,19 +45,34 @@ content = content.replace('__ROOT__',ROOT)
 content = content.replace('__HOST__',HOSTNAME)
 content = content.replace('__TYPE__',PROJECT_TYPE).replace('__PHP__',PHPFPM_VERSION)
 
+CHANGE_CONTENT = input('Do you want to modify the .conf file? [y/N]:')
+
+if CHANGE_CONTENT.lower() == 'y':
+    try:
+        fruntime_conf = open('./'+HOSTNAME+'.conf', "w")
+        fruntime_conf.write(content)
+        fruntime_conf.close()
+        os.system('sudo nano '+'./'+HOSTNAME+'.conf')
+        if os.path.exists('./'+HOSTNAME+'.conf'):
+            with open('./'+HOSTNAME+'.conf', 'r') as file:
+                  content = file.read()
+        os.system('sudo rm ./'+HOSTNAME+'.conf')
+    except:
+       print('\033[91m Error! Something went wrong :( \033[0m \n') 
+
 
 
 
 fconf = open(FILES['conf-file'] %(HOSTNAME), "w")
-
+symbolic_link = FILES['conf-symbolic-link'] %(FILES['conf-file'] %(HOSTNAME))
 if fconf:
     write = fconf.write(content)
     if write:
         fconf.close()
         try:
-            os.system('sudo ln -s '+FILES['conf-symbolic-link'] %(FILES['conf-file'] %(HOSTNAME)))
+            os.system('sudo ln -s '+symbolic_link)
             fhosts = open(FILES['hosts'], "a")
-            fhosts.write('\n127.0.0.1\t'+HOSTNAME+"\n")
+            fhosts.write('127.0.0.1\t'+HOSTNAME+"\n")
             fhosts.close()
             os.system('sudo service nginx restart')
             print('\n \033[92m Virtual host successfuly created.Hostname: http://'+HOSTNAME+'\033[0m')
