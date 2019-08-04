@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os
+import re
 
 
 class Inputs:
@@ -51,6 +52,17 @@ class Inputs:
         return version
 
 
+
+
+
+def check_host(hostsfile,hostname):
+    with open(hostsfile) as fp:
+        line = fp.readline()
+        while line:
+            if re.match(r'^127.0.0.1([\s\t]+)'+hostname+'$',line,re.M|re.I):
+                return True
+            line = fp.readline()
+    return False
 
 
 

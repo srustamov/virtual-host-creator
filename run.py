@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 import os
-from client import Inputs
+import itertools
+import threading
+import time
+import sys
+from client import Inputs,check_host
+
 
 if __name__ == "__main__":
     if os.getenv("SUDO_USER") == None:
@@ -45,7 +50,7 @@ content = content.replace('__ROOT__',ROOT)
 content = content.replace('__HOST__',HOSTNAME)
 content = content.replace('__TYPE__',PROJECT_TYPE).replace('__PHP__',PHPFPM_VERSION)
 
-CHANGE_CONTENT = input('Do you want to modify the .conf file? [y/N]:')
+CHANGE_CONTENT = input(' \033[92mDo you want to modify the .conf file? \033[0m [y/N]:')
 
 if CHANGE_CONTENT.lower() == 'y':
     try:
@@ -65,17 +70,36 @@ if CHANGE_CONTENT.lower() == 'y':
 
 fconf = open(FILES['conf-file'] %(HOSTNAME), "w")
 symbolic_link = FILES['conf-symbolic-link'] %(FILES['conf-file'] %(HOSTNAME))
+creating = False
+
+
+def creating_animate():
+    for c in itertools.cycle(['|', '/', '-' ,'\\']):
+        if creating:
+            break
+        sys.stdout.write('\r Creating virtual host ' + c)
+        sys.stdout.flush()
+        time.sleep(0.1)
+    
+
+t = threading.Thread(target=creating_animate)
+t.start()
+
 if fconf:
     write = fconf.write(content)
     if write:
         fconf.close()
         try:
+            if os.path.exists('/etc/nginx/sites-enabled/'+HOSTNAME+'.conf'):
+                os.system('sudo rm /etc/nginx/sites-enabled/'+HOSTNAME+'.conf')
             os.system('sudo ln -s '+symbolic_link)
-            fhosts = open(FILES['hosts'], "a")
-            fhosts.write('127.0.0.1\t'+HOSTNAME+"\n")
-            fhosts.close()
+            if not check_host(FILES['hosts'],HOSTNAME):
+                fhosts = open(FILES['hosts'], "a")
+                fhosts.write('127.0.0.1\t'+HOSTNAME+"\n")
+                fhosts.close()
             os.system('sudo service nginx restart')
-            print('\n \033[92m Virtual host successfuly created.Hostname: http://'+HOSTNAME+'\033[0m')
+            creating = True
+            print('\n\033[92m Virtual host successfully created.Hostname: http://'+HOSTNAME+'\033[0m')
             print('\n\033[1m\033[104m Restart nginx before running\033[0m\033[0m\n')
         except:
             exit('\033[91m Error! Something went wrong :( \n \033[0m')
