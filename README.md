@@ -13,3 +13,7 @@ Virtual host creator for Nginx(with php)
 
    $ sudo ./run.py # or sudo python run.py
 ```
+   * Remove virtual host
+```
+   $ sudo ./run.py --delete example.com
+```
