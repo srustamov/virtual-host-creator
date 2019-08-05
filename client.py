@@ -4,7 +4,6 @@ import re
 
 
 class Inputs:
-
     def root_dir():
         while True:
             print('Site Root Folder\n')
@@ -23,8 +22,10 @@ class Inputs:
                 return root.strip()
 
     def project_type():
-        Type = input('\033[93m Project type (default Normal)[1:MVC 2:Normal] \033[0m : ')
-
+        try:
+            Type = int(input('\033[93m Project type (default Normal)[1:MVC 2:Normal] \033[0m : '))
+        except ValueError:
+	        Type = 2
         if Type==1:
             Type = 'try_files $uri $uri/ /index.php?$query_string;'
         else:
@@ -33,9 +34,7 @@ class Inputs:
         return Type
 
     def hostname():
-
         host = ''
-
         while (host==''):
             host = input('\033[93m Site hostname(example example.com) \033[0m : ')
             if host=='':
@@ -46,7 +45,6 @@ class Inputs:
 
     def phpfpm_version():
         version = input('\n\033[93m php-fpm version|default(php7.2-fpm): [example php7.2-fpm ]\033[0m :')
-
         if version == '':
             version = 'php7.2-fpm'
         return version
