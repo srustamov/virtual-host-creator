@@ -4,6 +4,8 @@ import re
 
 
 class Inputs:
+
+    @staticmethod
     def root_dir():
         while True:
             print('Site Root Folder\n')
@@ -20,7 +22,7 @@ class Inputs:
                 continue
             else:
                 return root.strip()
-
+    @staticmethod
     def project_type():
         try:
             Type = int(input('\033[93m Project type (default Normal)[1:MVC 2:Normal] \033[0m : '))
@@ -33,6 +35,7 @@ class Inputs:
         
         return Type
 
+    @staticmethod
     def hostname():
         host = ''
         while (host==''):
@@ -42,7 +45,8 @@ class Inputs:
                 continue
             else:
                 return host
-
+    
+    @staticmethod
     def phpfpm_version():
         version = input('\n\033[93m php-fpm version|default(php7.2-fpm): [example php7.2-fpm ]\033[0m :')
         if version == '':
