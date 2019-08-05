@@ -58,9 +58,19 @@ def check_host(hostsfile,hostname):
         line = fp.readline()
         while line:
             if re.match(r'^127.0.0.1([\s\t]+)'+hostname+'$',line,re.M|re.I):
-                return True
+                return line
             line = fp.readline()
     return False
+
+def delete_host(hostsfile,hostname):
+    l = check_host(hostsfile,hostname)
+    if l:
+        with open(hostsfile, "r") as f:
+            lines = f.readlines()
+        with open(hostsfile, "w") as f:
+            for line in lines:                
+                if line.strip("\n") != l.strip("\n"):
+                    f.write(line)
 
 
 

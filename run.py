@@ -4,7 +4,8 @@ import itertools
 import threading
 import time
 import sys
-from client import Inputs,check_host
+from client import Inputs,check_host,delete_host
+
 
 
 if __name__ == "__main__":
@@ -13,12 +14,37 @@ if __name__ == "__main__":
 else:
     exit('\033[91m Script exit! \033[0m')
 
+
+
 FILES = {
     'user-conf-file':'./nginx-conf.txt',
     'conf-file':"/etc/nginx/sites-available/%s.conf",
     'conf-symbolic-link':'%s /etc/nginx/sites-enabled/',
     'hosts':'/etc/hosts'
 }
+
+
+if len(sys.argv) == 3:
+    args = sys.argv
+    if args[1].lower() == '--delete':
+        hostname = args[2]
+        answer = str(input('\033[91mRemove virtual host?\033[0m [y/N]:'))
+        if answer.lower() == 'y':
+            if os.path.exists(FILES['conf-file'] %(hostname)):
+                os.system('sudo rm /etc/nginx/sites-*/'+hostname+'.conf')
+            delete_host(FILES['hosts'],hostname)
+            os.system('sudo service nginx restart')
+            exit('\033[92m Virtual host successfully removed \033[0m\n')
+        else:
+            exit('\nBye!\n')
+    else:
+        print('\033[91m Parameters are missing\033[0m\n')
+        print(' What do you mean?\n')
+        exit('\t --delete '+args[2])
+
+
+
+
 
 if os.path.exists(FILES['user-conf-file']):
     with open(FILES['user-conf-file'], 'r') as file:
