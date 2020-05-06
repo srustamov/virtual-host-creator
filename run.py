@@ -4,134 +4,127 @@ import itertools
 import threading
 import time
 import sys
-from client import Inputs,check_host,delete_host
+from modules import message, host, user
+
+from modules.constants import (
+    BASE_PATH,
+    NGINX_CONF_FILE,
+    NGINX_SITES_CONF_FILE,
+    NGINX_SITES_ENABLED,
+    HOSTS_FILE
+)
 
 
-
-if __name__ == "__main__":
-    if os.getenv("SUDO_USER") == None:
-        exit('\033[91m Please start the script as root!\033[0m')
-else:
-    exit('\033[91m Script exit! \033[0m')
-
-
-
-FILES = {
-    'user-conf-file':'./nginx-conf.txt',
-    'conf-file':"/etc/nginx/sites-available/%s.conf",
-    'conf-symbolic-link':'%s /etc/nginx/sites-enabled/',
-    'hosts':'/etc/hosts'
-}
+# if __name__ == "__main__":
+#     if os.getenv("SUDO_USER") == None:
+#         message.error('Please start the script as root!', False, True)
+# else:
+#     message.error('Script exit!', False, True)
 
 
 if len(sys.argv) == 3:
     args = sys.argv
     if args[1].lower() == '--delete':
         hostname = args[2]
-        answer = str(input('\033[91mRemove virtual host?\033[0m [y/N]:'))
+        answer = str(input(message.info('Remove virtual host?', True)+'[y/N]:'))
         if answer.lower() == 'y':
-            if os.path.exists(FILES['conf-file'] %(hostname)):
+            if os.path.exists(NGINX_SITES_CONF_FILE % (hostname)):
                 os.system('sudo rm /etc/nginx/sites-*/'+hostname+'.conf')
-            delete_host(FILES['hosts'],hostname)
-            os.system('sudo service nginx restart')
-            exit('\033[92m Virtual host successfully removed \033[0m\n')
+            host.delete(HOSTS_FILE, hostname)
+            host.restart()
+            message.success('Virtual host successfully removed', False, True)
         else:
-            exit('\nBye!\n')
+            message.info('bye',False,True)
     else:
-        print('\033[91m Parameters are missing\033[0m\n')
-        print(' What do you mean?\n')
-        exit('\t --delete '+args[2])
+        message.error('Parameters are missing')
+        message.info('What do you mean?')
+        message.success('\t --delete %s' % (args[2]), False, True)
 
 
-
-
-
-if os.path.exists(FILES['user-conf-file']):
-    with open(FILES['user-conf-file'], 'r') as file:
-         content = file.read()
+if os.path.exists(NGINX_CONF_FILE):
+    with open(NGINX_CONF_FILE, 'r') as file:
+        nginx_conf_content = file.read()
 else:
-    exit('\033[91m %s not found \033[0m' %(FILES['user-conf-file']))
+    message.error('%s not found' % (NGINX_CONF_FILE), False, True)
 
-print('\033[95m'+"""
-***************************************************************************************
-*                                                                                     *
-*                         NGINX SIMPLE VIRTUAL HOST CREATOR                           *
-*                              For Ubuntu machines                                    *
-*                                                                                     *
-***************************************************************************************
-"""+'\033[0m')
+
+message.title()
 
 try:
-    ROOT = Inputs.root_dir()
-    PROJECT_TYPE = Inputs.project_type()
-    PHPFPM_VERSION = Inputs.phpfpm_version()
-    HOSTNAME = Inputs.hostname()
+    ROOT = user.root_dir()
+    PROJECT_TYPE = user.project_type()
+    PHPFPM_VERSION = user.phpfpm_version()
+    HOSTNAME = user.hostname()
 except KeyboardInterrupt:
-    exit('\nBye!\n')
+    message.info('Bye', False, True)
 except:
-    exit('\033[91m Error! Something went wrong :( \n \033[0m')
+    message.error('\nError! Something went wrong :(', False, True)
 
 
-content = content.replace('__ROOT__',ROOT)
-content = content.replace('__HOST__',HOSTNAME)
-content = content.replace('__TYPE__',PROJECT_TYPE).replace('__PHP__',PHPFPM_VERSION)
+nginx_conf_content = nginx_conf_content.replace('__ROOT__', ROOT)\
+    .replace('__HOST__', HOSTNAME)\
+    .replace('__TYPE__', PROJECT_TYPE)\
+    .replace('__PHP__', PHPFPM_VERSION)
 
-CHANGE_CONTENT = input(' \033[92mDo you want to modify the .conf file? \033[0m [y/N]:')
+CHANGE_CONTENT = input(message.info(
+    'Do you want to modify the .conf file?', True)+' [y/N]:')
 
 if CHANGE_CONTENT.lower() == 'y':
     try:
-        fruntime_conf = open('./'+HOSTNAME+'.conf', "w")
-        fruntime_conf.write(content)
+        editable_conf_file = os.path.join(BASE_PATH, HOSTNAME)
+        fruntime_conf = open(editable_conf_file, "w")
+        fruntime_conf.write(nginx_conf_content)
         fruntime_conf.close()
-        os.system('sudo nano '+'./'+HOSTNAME+'.conf')
-        if os.path.exists('./'+HOSTNAME+'.conf'):
-            with open('./'+HOSTNAME+'.conf', 'r') as file:
-                  content = file.read()
-        os.system('sudo rm ./'+HOSTNAME+'.conf')
+        os.system('sudo nano %s' % editable_conf_file)
+        if os.path.exists(editable_conf_file):
+            with open(editable_conf_file, 'r') as file:
+                nginx_conf_content = file.read()
+        os.system('sudo rm %s' % editable_conf_file)
     except:
-       print('\033[91m Error! Something went wrong :( \033[0m \n') 
+        message.error('Error! Something went wrong :(')
 
+fconf = open(NGINX_SITES_CONF_FILE % (HOSTNAME), "w")
+symbolic_link = NGINX_SITES_ENABLED % (NGINX_SITES_CONF_FILE % (HOSTNAME))
 
-
-
-fconf = open(FILES['conf-file'] %(HOSTNAME), "w")
-symbolic_link = FILES['conf-symbolic-link'] %(FILES['conf-file'] %(HOSTNAME))
 creating = False
 
 
 def creating_animate():
-    for c in itertools.cycle(['|', '/', '-' ,'\\']):
+    for c in itertools.cycle(['|', '/', '-', '\\']):
         if creating:
             break
         sys.stdout.write('\r Creating virtual host ' + c)
         sys.stdout.flush()
         time.sleep(0.1)
-    
+
 
 t = threading.Thread(target=creating_animate)
+
 t.start()
 
 if fconf:
-    write = fconf.write(content)
+    write = fconf.write(nginx_conf_content)
     if write:
         fconf.close()
         try:
             if os.path.exists('/etc/nginx/sites-enabled/'+HOSTNAME+'.conf'):
                 os.system('sudo rm /etc/nginx/sites-enabled/'+HOSTNAME+'.conf')
-            os.system('sudo ln -s '+symbolic_link)
-            if not check_host(FILES['hosts'],HOSTNAME):
-                fhosts = open(FILES['hosts'], "a")
-                fhosts.write('127.0.0.1\t'+HOSTNAME+"\n")
+            os.system('sudo ln -s %s' % symbolic_link)
+            if not host.check(HOSTS_FILE, HOSTNAME):
+                fhosts = open(HOSTS_FILE, "a")
+                fhosts.write('127.0.0.1\t %s \n' % HOSTNAME)
                 fhosts.close()
-            os.system('sudo service nginx restart')
+            host.restart()
             creating = True
-            print('\n\033[92m Virtual host successfully created.Hostname: http://'+HOSTNAME+'\033[0m')
-            print('\n\033[1m\033[104m Restart nginx before running\033[0m\033[0m\n')
+            message.success(
+                '\nVirtual host successfully created.Hostname: http://%s\n' % HOSTNAME)
+            message.info('Restart nginx before running')
         except:
-            exit('\033[91m Error! Something went wrong :( \n \033[0m')
+            message.error('Error! Something went wrong :(', False, True)
     else:
-        exit('\033[91m The .conf file could not be written. Something went wrong :( \033[0m')
-        
+        message.error(
+            'The .conf file could not be written. Something went wrong :(', False, True)
+
 else:
-    exit('\033[91m The .conf file was not openning. Something went wrong :( \033[0m')
-            
+    message.error(
+        'The .conf file was not openning. Something went wrong :(', False, True)
